@@ -4,6 +4,7 @@ from storage.database import JSONDatabase
 from notification.notifier import ConsoleNotifier
 from config import STATIC_TOKEN, RETRY_COUNT, RETRY_DELAY, CACHE_EXPIRY, URL, FILENAME
 import time
+from authentication.auth import Auth
 
 # Instantiate the FastAPI app
 app = FastAPI()
@@ -17,14 +18,18 @@ database = JSONDatabase(filename=FILENAME)
 # Instantiate a notifier object
 notifier = ConsoleNotifier()
 
+# Instantiate the Auth class
+auth = Auth(STATIC_TOKEN)
+
 @app.get("/scrape")
 async def scrape_data(
     max_pages: int = Query(None, title="Maximum number of pages to scrape"),
     proxy: str = Query(None, title="Proxy string for scraping"),
     x_token: str = Header(None)
 ):
-    # Simple authentication
-    if x_token != STATIC_TOKEN:
+    
+    # Authenticate user
+    if not auth.authenticate(x_token):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     # Scrape data from the target website with retry mechanism
